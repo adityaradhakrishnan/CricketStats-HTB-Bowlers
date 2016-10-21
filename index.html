@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+	font-family: "Helvetica Neue", Helvetica, sans-serif;
+	font-size: 14px;
+}
+.axis path, line {
+	fill: none;
+	stroke: #000;
+	stroke-width: 1px;
+	shape-rendering: crispEdges;
+}
+.point {
+  	fill: #FFC300;
+  	opacity: 0.75;
+}
+div.tooltip {	
+    position: absolute;			
+    width: 100px;					
+    height: 30px;							
+    pointer-events: none;			
+}
+</style>
+
+<body>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script>
+		var Margins = {top: 60, right: 40, bottom: 80, left: 80},
+			Width   = 640 - Margins.left - Margins.right,
+			Height  = 480 - Margins.top - Margins.bottom;
+		var x       = d3.scale.linear().range([0, Width]);
+		var y       = d3.scale.linear().range([Height, 0]);
+		// Define a div for the tooltip
+		var Div     = d3.select("body").append("div")
+						.attr("class", "tooltip")
+						.style("opacity", 0);
+		var SVG     = d3.select("body").append("svg")
+						.attr("width", Width + Margins.left + Margins.right)
+						.attr("height", Height + Margins.top + Margins.bottom)
+						.append("g").attr("transform", "translate(" + Margins.left + "," + Margins.top + ")");
+		// Open the data file and parse out information
+		d3.tsv("Compiled.tsv", function(Error, Stats) {
+			if (Error) throw Error;
+			// Cast the data to be plotted as numbers
+			Stats.forEach(function(s) {
+				s.PW = +s.PW;
+				s.DA = +s.DA;
+		});
+		// Set domains of the scales 
+		var xMin = d3.extent(Stats, function(s) { return s.PW })[0],
+			xMax = d3.extent(Stats, function(s) { return s.PW })[1],
+			yMin = d3.extent(Stats, function(s) { return s.DA })[0],
+			yMax = d3.extent(Stats, function(s) { return s.DA })[1];
+		x.domain([xMin*.975, xMax*1.025]).nice();
+		y.domain([yMin*1.025, yMax*1.025]).nice();
+		// Add the x-axis
+		SVG.append("g").attr("class", "x axis")
+			.attr("transform", "translate(0," + Height + ")")
+			.call(d3.svg.axis().scale(x).orient("bottom"));
+		// Add the y-axis
+    	SVG.append("g").attr("class", "y axis")
+			.call(d3.svg.axis().scale(y).orient("left"));
+    	// Add the data points
+		SVG.selectAll(".point").data(Stats).enter().append("circle")
+			.attr("class", "point").attr("r", 5)
+			.attr("cx", function(s) { return x(s.PW); })
+			.attr("cy", function(s) { return y(s.DA); })
+			.on("mouseover", function(s) { 
+				d3.select(this)
+					.style("opacity", 1)
+					.style("fill", "#FF5733");
+				Div.transition()
+					.duration(200)
+					.style("opacity", 0.9);
+				Div.html(s.Name)
+					.style("left", (d3.event.pageX) + "px")
+					.style("top", (d3.event.pageY - 28) + "px")
+					.style("font-size", "14px");
+		}).on("mouseout", function(s) {
+			d3.select(this)
+				.style("opacity", 0.75)
+				.style("fill", "#FFC300");
+			Div.transition()
+				.duration(400)
+				.style("opacity", 0);
+		});
+		SVG.append("text").attr("text-anchor", "middle")
+			.attr("transform", "translate(" + (-Margins.left/3*2) + "," + (Height/2) +")rotate(-90)")
+			.text("Home bowling average - away bowling average").attr("font-size", "18px")
+			.style("font-weight", "300");
+		SVG.append("text").attr("text-anchor", "middle")
+			.attr("transform", "translate(" + (Width/2) + "," + (Height + Margins.bottom/3*2) +")")
+			.text("Percentage of wickets taken at home").attr("font-size", "18px")
+			.style("font-weight", "300");
+		SVG.append("text").attr("text-anchor", "middle")
+			.attr("transform", "translate(" + (Width/2) + "," + (- Margins.top/2) + ")")
+			.text("Home Track Bullies - A Numerical Analysis").attr("font-size", "24px")
+			.style("font-weight", "700");
+		});
+	</script>
+</body>
